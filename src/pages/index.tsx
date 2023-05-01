@@ -7,6 +7,7 @@ import { api, type RouterOutputs } from "~/utils/api";
 
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import { LoadingPage } from "~/components/loading";
 
 dayjs.extend(relativeTime);
 
@@ -54,19 +55,36 @@ const PostView = (props: PostWithUser) => {
           <span>@{author.username}</span> .{" "}
           <span className="font-thin">{dayjs(post.createdAt).fromNow()}</span>
         </div>
-        <span>{post.content}</span>
+        <span className="text-xl">{post.content}</span>
       </div>
     </div>
   );
 };
 
+const Feed = () => {
+  const { data, isLoading: postLoading } = api.posts.getAll.useQuery();
+
+  if (postLoading) return <LoadingPage />;
+
+  if (!data) return <div>Something went wrong</div>;
+
+  return (
+    <div className="flex flex-col">
+      {data?.map((fullpost) => (
+        <PostView {...fullpost} key={fullpost.post.id} />
+      ))}
+    </div>
+  );
+};
+
 const Home: NextPage = () => {
-  const { isSignedIn } = useUser();
+  const { isSignedIn, isLoaded: userLoaded } = useUser();
 
-  const { data, isLoading } = api.posts.getAll.useQuery();
+  // start fetching asap
+  api.posts.getAll.useQuery();
 
-  if (isLoading) return <div>Loading...</div>;
-  if (!data) return <div>Somethign went wrong!</div>;
+  // Show empty div if user is not laoded
+  if (!userLoaded) return <div />;
 
   return (
     <>
@@ -85,11 +103,7 @@ const Home: NextPage = () => {
             )}
             {isSignedIn && <CreatePostWizard />}
           </div>
-          <div className="flex flex-col">
-            {data?.map((fullpost) => (
-              <PostView {...fullpost} key={fullpost.post.id} />
-            ))}
-          </div>
+          <Feed />
         </div>
       </main>
     </>
