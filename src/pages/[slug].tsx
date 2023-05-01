@@ -44,6 +44,7 @@ export const getStaticProps: GetStaticProps = async (context) => {
   return {
     props: {
       trpcState: helpers.dehydrate(),
+      username,
     },
   };
 };
