@@ -1,14 +1,15 @@
 import { SignInButton, useUser } from "@clerk/nextjs";
 import { type NextPage } from "next";
-import Image from "next/image";
 import Head from "next/head";
+import Image from "next/image";
 
 import { api, type RouterOutputs } from "~/utils/api";
 
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
-import { LoadingPage } from "~/components/loading";
 import { useState } from "react";
+import toast from "react-hot-toast";
+import { LoadingPage, LoadingSpinner } from "~/components/loading";
 
 dayjs.extend(relativeTime);
 
@@ -22,6 +23,14 @@ const CreatePostWizard = () => {
     onSuccess: () => {
       setInput("");
       void ctx.posts.getAll.invalidate();
+    },
+    onError: (e) => {
+      const errorMessage = e.data?.zodError?.fieldErrors.content;
+      if (errorMessage && errorMessage[0]) {
+        toast.error(errorMessage[0]);
+      } else {
+        toast.error("Failed to post. Try Again later.");
+      }
     },
   });
 
@@ -43,11 +52,26 @@ const CreatePostWizard = () => {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              if (input !== "") {
+                mutate({ content: input });
+              }
+            }
+          }}
           disabled={isPosting}
         />
-        <button type="submit" onClick={() => mutate({ content: input })}>
-          Post
-        </button>
+        {input !== "" && !isPosting && (
+          <button type="submit" onClick={() => mutate({ content: input })}>
+            Post
+          </button>
+        )}
+        {isPosting && (
+          <div className="flex flex-col justify-center">
+            <LoadingSpinner size={20} />
+          </div>
+        )}
       </div>
     </>
   );
